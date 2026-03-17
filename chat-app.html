@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شات عربي | ArabChat</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0d1117;
+    --bg-surface: #161b22;
+    --bg-card: #1c2333;
+    --bg-hover: #21273a;
+    --bg-input: #0d1117;
+    --border: #30363d;
+    --border-light: #21293a;
+    --accent: #e6a817;
+    --accent-glow: rgba(230,168,23,0.18);
+    --accent-soft: #c97b1a;
+    --teal: #1a9e8f;
+    --teal-glow: rgba(26,158,143,0.15);
+    --red: #e05a5a;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #484f58;
+    --online: #3fb950;
+    --msg-self: #1a3a2a;
+    --msg-self-border: #2ea043;
+    --msg-other: #1c2333;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-xs: 5px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --font-ar: 'Tajawal', 'IBM Plex Sans Arabic', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-ar);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.4;
+  }
+
+  /* ── TOP NAVBAR ── */
+  .navbar {
+    height: 52px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+    margin-left: auto;
+  }
+  .logo span { font-weight: 300; }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: auto;
+  }
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-family: var(--font-ar);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .nav-btn:hover, .nav-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .nav-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 700;
+  }
+  .nav-btn.primary:hover { background: #d4940f; }
+
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px 3px 4px;
+    cursor: pointer;
+    transition: border-color .2s;
+    font-size: 13px;
+  }
+  .user-pill:hover { border-color: var(--accent); }
+  .user-pill .av {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #000;
+    flex-shrink: 0;
+  }
+  .online-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--online);
+    display: inline-block;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── LEFT PANEL — Rooms & Users ── */
+  .sidebar {
+    width: 240px;
+    background: var(--bg-surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .stab {
+    flex: 1;
+    padding: 10px 4px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    font-weight: 500;
+  }
+  .stab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .stab:hover:not(.active) { color: var(--text-primary); }
+
+  .sidebar-body { overflow-y: auto; flex: 1; }
+  .sidebar-body::-webkit-scrollbar { width: 3px; }
+  .sidebar-body::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 14px 4px;
+  }
+
+  .room-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background .15s;
+    position: relative;
+  }
+  .room-item:hover { background: var(--bg-hover); }
+  .room-item.active {
+    background: var(--accent-glow);
+    border-right: 3px solid var(--accent);
+  }
+  .room-item.active .room-name { color: var(--accent); }
+  .room-icon {
+    font-size: 16px;
+    width: 28px;
+    height: 28px;
+    background: var(--bg-card);
+    border-radius: var(--radius-xs);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-style: normal;
+  }
+  .room-name { font-size: 13px; flex: 1; }
+  .room-count {
+    font-size: 10px;
+    background: var(--bg-card);
+    color: var(--text-muted);
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+  .room-item.active .room-count {
+    background: var(--accent-glow);
+    color: var(--accent);
+  }
+
+  /* DM items */
+  .dm-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .dm-item:hover { background: var(--bg-hover); }
+  .dm-item.active { background: var(--teal-glow); }
+  .dm-av {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .dm-av .dot {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-surface);
+  }
+  .dm-info { flex: 1; min-width: 0; }
+  .dm-name { font-size: 13px; font-weight: 500; }
+  .dm-preview { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dm-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .dm-time { font-size: 10px; color: var(--text-muted); }
+  .dm-badge {
+    background: var(--accent);
+    color: #000;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 8px;
+  }
+
+  /* ── CENTER — Chat area ── */
+  .chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg-deep);
+    position: relative;
+  }
+
+  /* Chat bg pattern */
+  .chat-main::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 80%, rgba(230,168,23,0.04) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(26,158,143,0.04) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .chat-header {
+    height: 52px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    flex-shrink: 0;
+    position: relative; z-index: 1;
+  }
+  .chat-header-icon {
+    font-size: 18px;
+    width: 32px; height: 32px;
+    background: var(--accent-glow);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-xs);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chat-header-info { flex: 1; }
+  .chat-header-name { font-size: 14px; font-weight: 700; }
+  .chat-header-sub { font-size: 11px; color: var(--text-muted); }
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 30px; height: 30px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all .2s;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative; z-index: 1;
+  }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .msg-group { margin-bottom: 10px; }
+
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 2px 0;
+    animation: fadeUp .25s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-row.self {
+    flex-direction: row-reverse;
+  }
+
+  .msg-av {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-bottom: 2px;
+  }
+
+  .msg-content { max-width: 68%; display: flex; flex-direction: column; gap: 3px; }
+  .msg-row.self .msg-content { align-items: flex-end; }
+
+  .msg-sender {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 4px;
+    margin-bottom: 1px;
+  }
+
+  .bubble {
+    background: var(--msg-other);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    border-bottom-right-radius: 3px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 1.55;
+    word-break: break-word;
+    position: relative;
+  }
+  .msg-row.self .bubble {
+    background: var(--msg-self);
+    border-color: var(--msg-self-border);
+    border-radius: var(--radius);
+    border-bottom-left-radius: 3px;
+  }
+  .bubble-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 0 2px;
+    align-self: flex-end;
+  }
+
+  /* System messages */
+  .sys-msg {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 6px 16px;
+    margin: 4px 0;
+  }
+  .sys-msg span {
+    background: var(--bg-card);
+    padding: 3px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  /* Date divider */
+  .date-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .date-divider::before, .date-divider::after {
+    content: ''; flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Input area */
+  .input-area {
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+    position: relative; z-index: 1;
+  }
+  .input-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .toolbar-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-xs);
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  .toolbar-btn:hover { color: var(--accent); background: var(--accent-glow); }
+
+  .font-sel {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: var(--radius-xs);
+    padding: 3px 6px;
+    font-family: var(--font-ar);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .color-picker-wrap { position: relative; }
+  .color-circle {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    background: var(--accent);
+  }
+  #colorInput {
+    position: absolute; opacity: 0;
+    width: 20px; height: 20px;
+    top: 0; left: 0;
+    cursor: pointer;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .msg-input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: var(--font-ar);
+    font-size: 14px;
+    padding: 9px 14px;
+    resize: none;
+    min-height: 40px;
+    max-height: 100px;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color .2s;
+    direction: rtl;
+  }
+  .msg-input:focus { border-color: var(--accent); }
+  .msg-input::placeholder { color: var(--text-muted); }
+
+  .send-btn {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+    border: none;
+    border-radius: var(--radius);
+    color: #000;
+    font-size: 17px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .2s;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+  .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 16px var(--accent-glow); }
+  .send-btn:active { transform: scale(0.97); }
+
+  /* ── RIGHT PANEL — Users ── */
+  .users-panel {
+    width: 200px;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .users-header {
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .users-count {
+    background: var(--online);
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+  .users-list { overflow-y: auto; flex: 1; padding: 6px 0; }
+  .users-list::-webkit-scrollbar { width: 3px; }
+  .users-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .user-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: background .15s;
+    border-radius: 0;
+  }
+  .user-item:hover { background: var(--bg-hover); }
+  .u-av {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .u-av .dot {
+    position: absolute;
+    bottom: -1px; left: -1px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-surface);
+  }
+  .u-name { font-size: 12px; flex: 1; }
+  .u-badge {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .badge-mod { background: rgba(230,168,23,0.2); color: var(--accent); }
+  .badge-guest { background: var(--bg-card); color: var(--text-muted); }
+
+  /* ── EMOJI PICKER ── */
+  .emoji-panel {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    right: 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    z-index: 200;
+    box-shadow: var(--shadow);
+    width: 280px;
+  }
+  .emoji-panel.open { display: block; animation: fadeUp .2s ease; }
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+  }
+  .em {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background .1s;
+  }
+  .em:hover { background: var(--bg-hover); }
+
+  /* ── JOIN MODAL ── */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 32px;
+    width: 380px;
+    box-shadow: var(--shadow), 0 0 80px rgba(230,168,23,0.08);
+    animation: slideUp .3s cubic-bezier(0.34,1.4,0.64,1);
+    text-align: center;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal-logo {
+    font-size: 32px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+
+  .modal-input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: var(--font-ar);
+    font-size: 15px;
+    padding: 11px 16px;
+    outline: none;
+    transition: border-color .2s;
+    margin-bottom: 12px;
+    text-align: right;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+
+  .modal-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .gender-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .g-btn {
+    flex: 1;
+    padding: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-ar);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .g-btn.sel { border-color: var(--accent); background: var(--accent-glow); color: var(--accent); }
+
+  .modal-enter {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+    border: none;
+    border-radius: var(--radius);
+    color: #000;
+    font-family: var(--font-ar);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    margin-top: 4px;
+  }
+  .modal-enter:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+
+  .modal-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-muted); font-size: 12px; }
+  .modal-divider::before, .modal-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .modal-guest {
+    width: 100%;
+    padding: 10px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    font-family: var(--font-ar);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .modal-guest:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+
+  /* ── CONTEXT MENU ── */
+  .ctx-menu {
+    display: none;
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    z-index: 500;
+    min-width: 150px;
+    box-shadow: var(--shadow);
+  }
+  .ctx-menu.open { display: block; animation: fadeUp .15s ease; }
+  .ctx-item {
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: var(--radius-xs);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background .1s;
+  }
+  .ctx-item:hover { background: var(--bg-hover); }
+  .ctx-item.danger { color: var(--red); }
+  .ctx-item.danger:hover { background: rgba(224,90,90,0.1); }
+
+  /* ── PRIVATE CHAT INDICATOR ── */
+  .priv-banner {
+    background: linear-gradient(135deg, rgba(26,158,143,0.12), rgba(26,158,143,0.06));
+    border-bottom: 1px solid rgba(26,158,143,0.25);
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .users-panel { display: none; }
+    .sidebar { width: 200px; }
+  }
+  @media (max-width: 550px) {
+    .sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- JOIN MODAL -->
+<div class="modal-bg" id="joinModal">
+  <div class="modal">
+    <div class="modal-logo">شات عربي</div>
+    <div class="modal-sub">ArabChat · دردشة مجانية بدون تسجيل</div>
+
+    <label class="modal-label">اسم المستخدم / Nickname</label>
+    <input class="modal-input" id="nicknameInput" placeholder="أدخل اسمك..." maxlength="20">
+
+    <label class="modal-label">الجنس / Gender</label>
+    <div class="gender-row">
+      <button class="g-btn sel" onclick="selectGender(this, 'ذكر 👦')">ذكر</button>
+      <button class="g-btn" onclick="selectGender(this, 'أنثى 👧')">أنثى</button>
+    </div>
+
+    <button class="modal-enter" onclick="joinChat()">دخول الشات ◀</button>
+    <div class="modal-divider">أو / or</div>
+    <button class="modal-guest" onclick="joinAsGuest()">دخول كضيف / Enter as Guest</button>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-item" onclick="ctxAction('dm')">💬 رسالة خاصة / PM</div>
+  <div class="ctx-item" onclick="ctxAction('profile')">👤 الملف الشخصي</div>
+  <div class="ctx-item" onclick="ctxAction('ignore')">🚫 تجاهل / Ignore</div>
+  <div class="ctx-item danger" onclick="ctxAction('report')">⚠️ إبلاغ / Report</div>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-actions">
+    <button class="nav-btn" onclick="toggleLang()">🌐 EN / عربي</button>
+    <button class="nav-btn" id="langBtn">English</button>
+  </div>
+  <div class="logo">شات<span>عربي</span></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-right:auto">
+    <div class="user-pill" id="userPill">
+      <div class="av" id="navAvatar">?</div>
+      <span id="navName">ضيف</span>
+      <span class="online-dot"></span>
+    </div>
+  </div>
+</nav>
+
+<!-- APP -->
+<div class="app">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <div class="stab active" onclick="switchSTab(this,'rooms')">غرف الدردشة</div>
+      <div class="stab" onclick="switchSTab(this,'dms')">خاص</div>
+    </div>
+    <div class="sidebar-body" id="sidebarBody">
+      <!-- Rooms tab (default) -->
+      <div id="tabRooms">
+        <div class="section-label">الغرف العامة</div>
+        <div class="room-item active" onclick="switchRoom(this,'🇸🇦 السعودية','Saudi Arabia','125')">
+          <span class="room-icon">🇸🇦</span>
+          <span class="room-name">السعودية</span>
+          <span class="room-count">125</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🇪🇬 مصر','Egypt','98')">
+          <span class="room-icon">🇪🇬</span>
+          <span class="room-name">مصر</span>
+          <span class="room-count">98</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🇮🇶 العراق','Iraq','73')">
+          <span class="room-icon">🇮🇶</span>
+          <span class="room-name">العراق</span>
+          <span class="room-count">73</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🇲🇦 المغرب','Morocco','61')">
+          <span class="room-icon">🇲🇦</span>
+          <span class="room-name">المغرب</span>
+          <span class="room-count">61</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🇸🇾 سوريا','Syria','55')">
+          <span class="room-icon">🇸🇾</span>
+          <span class="room-name">سوريا</span>
+          <span class="room-count">55</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🇱🇧 لبنان','Lebanon','44')">
+          <span class="room-icon">🇱🇧</span>
+          <span class="room-name">لبنان</span>
+          <span class="room-count">44</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🇯🇴 الأردن','Jordan','38')">
+          <span class="room-icon">🇯🇴</span>
+          <span class="room-name">الأردن</span>
+          <span class="room-count">38</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🇩🇿 الجزائر','Algeria','67')">
+          <span class="room-icon">🇩🇿</span>
+          <span class="room-name">الجزائر</span>
+          <span class="room-count">67</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🇹🇳 تونس','Tunisia','42')">
+          <span class="room-icon">🇹🇳</span>
+          <span class="room-name">تونس</span>
+          <span class="room-count">42</span>
+        </div>
+        <div class="section-label">غرف مميزة</div>
+        <div class="room-item" onclick="switchRoom(this,'💬 عام','General','312')">
+          <span class="room-icon">💬</span>
+          <span class="room-name">عام</span>
+          <span class="room-count">312</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🎵 موسيقى','Music','89')">
+          <span class="room-icon">🎵</span>
+          <span class="room-name">موسيقى</span>
+          <span class="room-count">89</span>
+        </div>
+        <div class="room-item" onclick="switchRoom(this,'🎮 ألعاب','Gaming','76')">
+          <span class="room-icon">🎮</span>
+          <span class="room-name">ألعاب</span>
+          <span class="room-count">76</span>
+        </div>
+      </div>
+
+      <!-- DMs tab -->
+      <div id="tabDms" style="display:none">
+        <div class="section-label">المحادثات الخاصة</div>
+        <div class="dm-item active" onclick="openDM('أحمد محمد','#f97316')">
+          <div class="dm-av" style="background:rgba(249,115,22,0.2);color:#f97316">
+            أح
+            <div class="dot" style="background:var(--online)"></div>
+          </div>
+          <div class="dm-info">
+            <div class="dm-name">أحمد محمد</div>
+            <div class="dm-preview">كيف حالك؟ 😊</div>
+          </div>
+          <div class="dm-meta">
+            <span class="dm-time">2د</span>
+            <span class="dm-badge">3</span>
+          </div>
+        </div>
+        <div class="dm-item" onclick="openDM('سارة علي','#a78bfa')">
+          <div class="dm-av" style="background:rgba(167,139,250,0.2);color:#a78bfa">
+            سا
+            <div class="dot" style="background:var(--online)"></div>
+          </div>
+          <div class="dm-info">
+            <div class="dm-name">سارة علي</div>
+            <div class="dm-preview">أهلاً وسهلاً بك!</div>
+          </div>
+          <div class="dm-meta">
+            <span class="dm-time">15د</span>
+          </div>
+        </div>
+        <div class="dm-item" onclick="openDM('خالد حسن','#34d399')">
+          <div class="dm-av" style="background:rgba(52,211,153,0.2);color:#34d399">
+            خا
+            <div class="dot" style="background:var(--text-muted)"></div>
+          </div>
+          <div class="dm-info">
+            <div class="dm-name">خالد حسن</div>
+            <div class="dm-preview">تصبح على خير</div>
+          </div>
+          <div class="dm-meta">
+            <span class="dm-time">1س</span>
+          </div>
+        </div>
+        <div class="dm-item" onclick="openDM('ليلى نور','#f472b6')">
+          <div class="dm-av" style="background:rgba(244,114,182,0.2);color:#f472b6">
+            لي
+            <div class="dot" style="background:var(--text-muted)"></div>
+          </div>
+          <div class="dm-info">
+            <div class="dm-name">ليلى نور</div>
+            <div class="dm-preview">شكراً جزيلاً 🌸</div>
+          </div>
+          <div class="dm-meta">
+            <span class="dm-time">أمس</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT MAIN -->
+  <div class="chat-main">
+    <div class="chat-header" id="chatHeader">
+      <div class="chat-header-icon" id="chatIcon">🇸🇦</div>
+      <div class="chat-header-info">
+        <div class="chat-header-name" id="chatTitle">غرفة السعودية</div>
+        <div class="chat-header-sub" id="chatSub">125 متواجد · Saudi Arabia Room</div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="بحث">🔍</button>
+        <button class="icon-btn" title="إشعارات">🔔</button>
+        <button class="icon-btn" title="إعدادات">⚙️</button>
+      </div>
+    </div>
+
+    <div id="privBanner" style="display:none" class="priv-banner">
+      🔒 محادثة خاصة مع <strong id="privName">—</strong> · Private Conversation
+    </div>
+
+    <div class="messages" id="messagesArea"></div>
+
+    <div class="input-area">
+      <div class="input-toolbar">
+        <button class="toolbar-btn" title="إيموجي" onclick="toggleEmoji()">😊</button>
+        <button class="toolbar-btn" title="صورة">📷</button>
+        <button class="toolbar-btn" title="يوتيوب">▶️</button>
+        <select class="font-sel" id="fontSizeSel" title="حجم الخط">
+          <option value="12px">صغير</option>
+          <option value="14px" selected>متوسط</option>
+          <option value="17px">كبير</option>
+        </select>
+        <div class="color-picker-wrap" title="لون النص">
+          <div class="color-circle" id="colorCircle"></div>
+          <input type="color" id="colorInput" value="#e6a817" oninput="updateColor(this.value)">
+        </div>
+        <span style="font-size:11px;color:var(--text-muted);margin-right:auto">
+          <span id="charCount">0</span>/500
+        </span>
+      </div>
+      <div class="input-row" style="position:relative">
+        <div class="emoji-panel" id="emojiPanel">
+          <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+        <button class="send-btn" onclick="sendMessage()">➤</button>
+        <textarea class="msg-input" id="msgInput"
+          placeholder="اكتب رسالتك... / Type your message..."
+          maxlength="500"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="updateCount()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: Users -->
+  <div class="users-panel">
+    <div class="users-header">
+      <span>المتواجدون</span>
+      <span class="users-count" id="usersCount">125</span>
+    </div>
+    <div class="users-list" id="usersList"></div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let currentUser = { name: 'ضيف', gender: 'ذكر 👦', color: '#e6a817', fontSize: '14px' };
+let currentRoom = 'SA';
+let selectedGender = 'ذكر 👦';
+let isPrivate = false;
+let currentDM = null;
+let ctxTarget = null;
+let msgColor = '#e6a817';
+let isAr = true;
+
+// ── SAMPLE DATA ──
+const roomMessages = {
+  SA: [
+    { user: 'أحمد 🇸🇦', color: '#f97316', text: 'السلام عليكم الجميع! 👋', time: '10:02', self: false },
+    { user: 'نورا ✨', color: '#a78bfa', text: 'وعليكم السلام ورحمة الله 🌸', time: '10:03', self: false },
+    { user: 'محمد_SA', color: '#34d399', text: 'أهلاً بالجميع، كيف حالكم اليوم؟', time: '10:05', self: false },
+    { user: 'سارة 💫', color: '#f472b6', text: 'بخير الحمد لله! والله حر اليوم 🥵', time: '10:06', self: false },
+    { user: 'خالد KSA', color: '#60a5fa', text: 'أكيد حر، أنا في الرياض 45 درجة 😅', time: '10:07', self: false },
+  ],
+  EG: [
+    { user: 'علي_Cairo 🇪🇬', color: '#f59e0b', text: 'ازيكم يا جماعة؟', time: '09:55', self: false },
+    { user: 'هند المصرية', color: '#ec4899', text: 'تمام يا فندم! ومنتو عاملين إيه؟', time: '09:57', self: false },
+    { user: 'كريم Egypt', color: '#10b981', text: 'عاملين كويس ربنا يسترها 😂', time: '10:00', self: false },
+  ],
+  general: [
+    { user: 'Admin 👑', color: '#e6a817', text: 'مرحباً بجميع المتصلين! Welcome everyone!', time: '08:00', self: false },
+    { user: 'Guest_7821', color: '#94a3b8', text: 'Hello! Can anyone help me?', time: '09:30', self: false },
+    { user: 'User_AR', color: '#64748b', text: 'مرحبا بك! What do you need?', time: '09:31', self: false },
+  ]
+};
+
+const dmMessages = {
+  'أحمد محمد': [
+    { user: 'أحمد محمد', color: '#f97316', text: 'هلا! كيف حالك؟', time: '10:00', self: false },
+    { user: 'أنت', color: '#e6a817', text: 'تمام الحمد لله! وأنت؟', time: '10:01', self: true },
+    { user: 'أحمد محمد', color: '#f97316', text: 'كيف حالك؟ 😊', time: '10:02', self: false },
+  ],
+  'سارة علي': [
+    { user: 'سارة علي', color: '#a78bfa', text: 'أهلاً وسهلاً بك!', time: '09:45', self: false },
+    { user: 'أنت', color: '#e6a817', text: 'أهلاً سارة! كيفك؟', time: '09:46', self: true },
+  ],
+};
+
+const usersData = [
+  { name: 'Admin', color: '#e6a817', status: 'online', badge: 'mod', initials: 'AD' },
+  { name: 'أحمد 🇸🇦', color: '#f97316', status: 'online', badge: null, initials: 'أح' },
+  { name: 'نورا ✨', color: '#a78bfa', status: 'online', badge: null, initials: 'نو' },
+  { name: 'محمد_SA', color: '#34d399', status: 'online', badge: null, initials: 'مح' },
+  { name: 'سارة 💫', color: '#f472b6', status: 'online', badge: null, initials: 'سا' },
+  { name: 'خالد KSA', color: '#60a5fa', status: 'online', badge: null, initials: 'خا' },
+  { name: 'ريم الرياض', color: '#c084fc', status: 'online', badge: null, initials: 'ري' },
+  { name: 'Guest_4412', color: '#94a3b8', status: 'online', badge: 'guest', initials: 'G' },
+  { name: 'Guest_7821', color: '#64748b', status: 'away', badge: 'guest', initials: 'G' },
+  { name: 'فيصل SA', color: '#fbbf24', status: 'online', badge: null, initials: 'في' },
+  { name: 'ليلى نور', color: '#f472b6', status: 'away', badge: null, initials: 'لي' },
+  { name: 'Omar99', color: '#38bdf8', status: 'online', badge: null, initials: 'OM' },
+];
+
+const emojis = ['😊','😂','🤣','❤️','😍','🥰','😎','🤩','😘','🥳',
+  '👋','🙏','👍','🔥','💯','✨','🌸','💪','😭','🤔',
+  '😅','😆','😜','🎉','💬','🇸🇦','🇪🇬','🇮🇶','🇱🇧','🇲🇦',
+  '☕','🍕','🎵','🎮','⚽','🌙','☀️','🌊','🦁','🌺'];
+
+// ── INIT ──
+function init() {
+  renderUsers();
+  renderMessages('SA');
+  populateEmoji();
+}
+
+function renderUsers() {
+  const ul = document.getElementById('usersList');
+  ul.innerHTML = '';
+  usersData.forEach(u => {
+    ul.innerHTML += `
+      <div class="user-item" oncontextmenu="showCtx(event,'${u.name}')" onclick="showCtx(event,'${u.name}')">
+        <div class="u-av" style="background:${u.color}22;color:${u.color}">
+          ${u.initials}
+          <div class="dot" style="background:${u.status==='online'?'var(--online)':'var(--text-muted)'}"></div>
+        </div>
+        <span class="u-name" style="color:${u.color}">${u.name}</span>
+        ${u.badge==='mod' ? '<span class="u-badge badge-mod">مشرف</span>' : ''}
+        ${u.badge==='guest' ? '<span class="u-badge badge-guest">ضيف</span>' : ''}
+      </div>`;
+  });
+}
+
+function renderMessages(roomKey) {
+  const area = document.getElementById('messagesArea');
+  const msgs = isPrivate ? (dmMessages[currentDM] || []) : (roomMessages[roomKey] || roomMessages.general);
+  area.innerHTML = '';
+
+  area.innerHTML += `<div class="date-divider">اليوم · Today</div>`;
+  area.innerHTML += `<div class="sys-msg"><span>🟢 انضممت للغرفة · You joined the room</span></div>`;
+
+  msgs.forEach(m => renderSingleMsg(m));
+  scrollBottom();
+}
+
+function renderSingleMsg(m) {
+  const area = document.getElementById('messagesArea');
+  const isSelf = m.self;
+  const initials = m.user.substring(0, 2);
+  const fs = document.getElementById('fontSizeSel').value;
+
+  area.innerHTML += `
+    <div class="msg-row ${isSelf ? 'self' : ''}">
+      ${!isSelf ? `<div class="msg-av" style="background:${m.color}22;color:${m.color}">${initials}</div>` : ''}
+      <div class="msg-content">
+        ${!isSelf ? `<div class="msg-sender" style="color:${m.color}">${m.user}</div>` : ''}
+        <div style="display:flex;align-items:flex-end;gap:5px;${isSelf?'flex-direction:row-reverse':''}">
+          <div class="bubble" style="font-size:${m.fontSize||'14px'};color:${isSelf?m.color:'var(--text-primary)'}">
+            ${escapeHtml(m.text)}
+          </div>
+          <span class="bubble-time">${m.time}</span>
+        </div>
+      </div>
+      ${isSelf ? `<div class="msg-av" style="background:${m.color}22;color:${m.color}">${getInitials(currentUser.name)}</div>` : ''}
+    </div>`;
+}
+
+function escapeHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function getInitials(name) {
+  return name.substring(0,2) || '??';
+}
+
+function scrollBottom() {
+  const area = document.getElementById('messagesArea');
+  setTimeout(() => area.scrollTop = area.scrollHeight, 50);
+}
+
+// ── JOIN ──
+function selectGender(btn, g) {
+  document.querySelectorAll('.g-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  selectedGender = g;
+}
+
+function joinChat() {
+  const name = document.getElementById('nicknameInput').value.trim();
+  if (!name) { document.getElementById('nicknameInput').focus(); return; }
+  currentUser.name = name;
+  currentUser.gender = selectedGender;
+  finalizeJoin();
+}
+
+function joinAsGuest() {
+  const n = 'Guest_' + Math.floor(Math.random()*9000+1000);
+  currentUser.name = n;
+  finalizeJoin();
+}
+
+function finalizeJoin() {
+  document.getElementById('joinModal').style.display = 'none';
+  document.getElementById('navName').textContent = currentUser.name;
+  document.getElementById('navAvatar').textContent = getInitials(currentUser.name);
+
+  // Add to users list
+  usersData.unshift({
+    name: currentUser.name, color: currentUser.color,
+    status: 'online', badge: null, initials: getInitials(currentUser.name)
+  });
+  renderUsers();
+
+  // Join message
+  const area = document.getElementById('messagesArea');
+  area.innerHTML += `<div class="sys-msg"><span>✅ ${currentUser.name} انضم للغرفة · joined the room</span></div>`;
+  scrollBottom();
+}
+
+// ── SEND ──
+function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  const fs = document.getElementById('fontSizeSel').value;
+
+  const msg = { user: currentUser.name, color: msgColor, text, time, self: true, fontSize: fs };
+  renderSingleMsg(msg);
+
+  // Store
+  if (isPrivate && currentDM) {
+    if (!dmMessages[currentDM]) dmMessages[currentDM] = [];
+    dmMessages[currentDM].push(msg);
+  } else {
+    const key = currentRoom || 'SA';
+    if (!roomMessages[key]) roomMessages[key] = [];
+    roomMessages[key].push(msg);
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  updateCount();
+  scrollBottom();
+
+  // Simulate reply after short delay
+  if (Math.random() > 0.4) simulateReply();
+}
+
+function simulateReply() {
+  const replies = [
+    'أهلاً وسهلاً! 😊', 'هلا هلا! 👋', 'كيف حالك؟', 'تسلم! 🙏',
+    'والله صح كلامك 😂', 'ما شاء الله عليك!', 'صحيح 👍',
+    'يعطيك العافية ❤️', 'مرحبا بك يا أخي!', 'حلو الكلام 🔥',
+    'لol شكلك طريف 😂', 'Welcome! أهلاً 🌸'
+  ];
+  const user = usersData.filter(u => u.name !== currentUser.name);
+  if (!user.length) return;
+  const u = user[Math.floor(Math.random()*user.length)];
+  const now = new Date();
+  const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+  setTimeout(() => {
+    const area = document.getElementById('messagesArea');
+    const msg = { user: u.name, color: u.color, text: replies[Math.floor(Math.random()*replies.length)], time, self: false };
+    renderSingleMsg(msg);
+    scrollBottom();
+  }, 800 + Math.random()*1500);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+  // Auto-resize
+  const t = e.target;
+  t.style.height = 'auto';
+  t.style.height = Math.min(t.scrollHeight, 100) + 'px';
+}
+
+function updateCount() {
+  const v = document.getElementById('msgInput').value.length;
+  document.getElementById('charCount').textContent = v;
+}
+
+// ── ROOMS & DMs ──
+function switchRoom(el, title, sub, count) {
+  document.querySelectorAll('.room-item').forEach(r => r.classList.remove('active'));
+  el.classList.add('active');
+
+  isPrivate = false;
+  document.getElementById('privBanner').style.display = 'none';
+
+  const icon = el.querySelector('.room-icon').textContent;
+  document.getElementById('chatIcon').textContent = icon;
+  document.getElementById('chatTitle').textContent = title;
+  document.getElementById('chatSub').textContent = count + ' متواجد · ' + sub + ' Room';
+  document.getElementById('usersCount').textContent = count;
+
+  const key = title.replace(/[^a-zA-Z]/g,'').toLowerCase().substring(0,4) || 'SA';
+  currentRoom = key;
+  renderMessages(key);
+}
+
+function switchSTab(el, tab) {
+  document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tabRooms').style.display = tab==='rooms'?'block':'none';
+  document.getElementById('tabDms').style.display = tab==='dms'?'block':'none';
+}
+
+function openDM(name, color) {
+  isPrivate = true;
+  currentDM = name;
+  document.getElementById('privBanner').style.display = 'flex';
+  document.getElementById('privName').textContent = name;
+  document.getElementById('chatIcon').textContent = '💬';
+  document.getElementById('chatTitle').textContent = name;
+  document.getElementById('chatSub').textContent = '🔒 محادثة خاصة · Private Chat';
+
+  document.querySelectorAll('.dm-item').forEach(d => d.classList.remove('active'));
+  event.currentTarget && event.currentTarget.classList.add('active');
+
+  renderMessages(null);
+}
+
+// ── EMOJI ──
+function populateEmoji() {
+  const g = document.getElementById('emojiGrid');
+  emojis.forEach(e => {
+    g.innerHTML += `<div class="em" onclick="insertEmoji('${e}')">${e}</div>`;
+  });
+}
+
+function toggleEmoji() {
+  document.getElementById('emojiPanel').classList.toggle('open');
+}
+
+function insertEmoji(e) {
+  const input = document.getElementById('msgInput');
+  input.value += e;
+  updateCount();
+  input.focus();
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#emojiPanel') && !e.target.closest('.toolbar-btn')) {
+    document.getElementById('emojiPanel').classList.remove('open');
+  }
+  if (!e.target.closest('#ctxMenu') && !e.target.closest('.user-item') && !e.target.closest('.u-name')) {
+    document.getElementById('ctxMenu').classList.remove('open');
+  }
+});
+
+// ── COLOR ──
+function updateColor(val) {
+  msgColor = val;
+  document.getElementById('colorCircle').style.background = val;
+}
+
+// ── CONTEXT MENU ──
+function showCtx(e, name) {
+  e.preventDefault();
+  ctxTarget = name;
+  const menu = document.getElementById('ctxMenu');
+  menu.style.top = e.clientY + 'px';
+  menu.style.right = 'auto';
+  menu.style.left = (e.clientX - 150) + 'px';
+  menu.classList.add('open');
+}
+
+function ctxAction(action) {
+  document.getElementById('ctxMenu').classList.remove('open');
+  if (action === 'dm') {
+    switchSTab(document.querySelectorAll('.stab')[1], 'dms');
+    openDM(ctxTarget, '#e6a817');
+  } else if (action === 'ignore') {
+    const area = document.getElementById('messagesArea');
+    area.innerHTML += `<div class="sys-msg"><span>🚫 تم تجاهل ${ctxTarget} · Ignored</span></div>`;
+    scrollBottom();
+  }
+}
+
+// ── LANG TOGGLE ──
+function toggleLang() {
+  isAr = !isAr;
+  document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+  document.getElementById('langBtn').textContent = isAr ? 'English' : 'عربي';
+}
+
+init();
+</script>
+</body>
+</html>
